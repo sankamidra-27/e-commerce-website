@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-tr from-green-300 to-blue-500 min-h-screen p-6 text-gray-900">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold">Your Cart</h2>
+    <button onclick="window.location.href='products.html'" class="text-sm px-4 py-1 bg-white rounded-lg">⬅️ Back</button>
+  </div>
+
+  <div id="cartItems" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"></div>
+
+  <div class="text-center mt-6 space-x-4">
+    <button id="updateCartBtn" onclick="updateCart()" class="hidden px-6 py-2 bg-blue-600 text-white rounded-lg">📝 Update Cart</button>
+    <button onclick="placeOrder()" class="px-6 py-2 bg-yellow-500 text-white rounded-lg">🧾 Proceed to Order</button>
+  </div>
+
+<script>
+const token = localStorage.getItem("token");
+const user_id = localStorage.getItem("email");
+
+let productIds = [];
+
+if (!token || !user_id) {
+  window.location.href = "index.html";
+}
+
+function renderCart(cartProducts) {
+  const container = document.getElementById("cartItems");
+  container.innerHTML = "";
+
+  if (cartProducts.length === 0) {
+    container.innerHTML = "<p class='text-white'>No items in cart.</p>";
+    document.getElementById("updateCartBtn").classList.add("hidden");
+    return;
+  }
+
+  cartProducts.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "bg-white p-4 rounded shadow relative";
+
+    div.innerHTML = `
+      <button onclick="removeFromCart('${p.id}')" class="absolute top-2 right-2 text-red-500 hover:text-red-700">🗑️</button>
+      <h3 class="font-bold text-lg">${p.product_name}</h3>
+      <p class="text-sm">${p.description || ""}</p>
+      <p class="text-sm text-gray-700 mt-1">₹${p.price}</p>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function removeFromCart(id) {
+  productIds = productIds.filter(pid => pid !== id);
+  showUpdateCartButton();
+  fetchAllProductsAndRender();
+}
+
+function showUpdateCartButton() {
+  const updateBtn = document.getElementById("updateCartBtn");
+  updateBtn.classList.remove("hidden");
+}
+
+function fetchAllProductsAndRender() {
+  fetch("http://localhost:8080/all_products", {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  .then(res => res.json())
+  .then(allProducts => {
+    const cartProducts = allProducts.filter(p => productIds.includes(p.id));
+    renderCart(cartProducts);
+  });
+}
+
+// Initial load
+fetch("http://localhost:8080/view_cart", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ user_id })
+})
+.then(res => res.json())
+.then(() => {
+  fetch("http://localhost:8080/all_products", {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  .then(res => res.json())
+  .then(allProducts => {
+    fetch("http://localhost:8080/view_cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id })
+    })
+    .then(res => res.json())
+    .then(cartData => {
+      productIds = cartData.products || [];
+      const cartProducts = allProducts.filter(p => productIds.includes(p.id));
+      renderCart(cartProducts);
+    });
+  });
+});
+
+function updateCart() {
+  fetch("http://localhost:8080/add_to_cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, products: productIds })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    document.getElementById("updateCartBtn").classList.add("hidden");
+  });
+}
+
+function placeOrder() {
+  if (!productIds.length) {
+    alert("No items to order.");
+    return;
+  }
+
+  fetch("http://localhost:8080/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id, products: productIds })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    if (data.message) {
+      window.location.href = "orders.html";
+    }
+  });
+}
+</script>
+
+</body>
+</html>

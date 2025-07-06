@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orders</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-tr from-green-300 to-blue-500 min-h-screen p-6 text-gray-900">
+
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold">Your Orders</h2>
+    <button onclick="window.location.href='products.html'" class="text-sm px-4 py-1 bg-white rounded-lg">⬅️ Back</button>
+  </div>
+
+  <div id="orderList" class="space-y-10"></div>
+
+  <script>
+    const user_id = localStorage.getItem("email");
+    if (!user_id || localStorage.getItem("role") !== "customer") window.location.href = "index.html";
+
+    fetch("http://localhost:8080/view_orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id })
+    })
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("orderList");
+      const orders = data.orders || [];
+
+      if (!orders.length) {
+        container.innerHTML = "<p class='text-white text-center'>No orders yet.</p>";
+        return;
+      }
+
+      orders.forEach((order, index) => {
+        const section = document.createElement("div");
+        section.className = "bg-white p-4 rounded shadow";
+
+        const heading = document.createElement("h3");
+        heading.className = "text-xl font-semibold mb-4 text-blue-700";
+        heading.textContent = `Order #${index + 1}`;
+        section.appendChild(heading);
+
+        const grid = document.createElement("div");
+        grid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+
+        (order.products || []).forEach(product => {
+          const card = document.createElement("div");
+          card.className = "bg-gray-100 p-4 rounded shadow-sm";
+
+          card.innerHTML = `
+            <h4 class="font-bold text-lg">${product.product_name}</h4>
+            <p class="text-sm">${product.description || ""}</p>
+            <p class="text-sm text-gray-700 mt-1">Category: ${product.category}</p>
+            <p class="text-sm text-gray-600 mt-1">Price: ₹${product.price}</p>
+            <p class="text-sm text-gray-600 mt-1">Color: ${product.color}</p>
+            <p class="text-sm text-gray-600 mt-1">Size: ${product.size}</p>
+            <p class="text-sm text-gray-600 mt-1">Discount: ${product.discount || 0}%</p>
+          `;
+          grid.appendChild(card);
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    });
+  </script>
+
+</body>
+</html>

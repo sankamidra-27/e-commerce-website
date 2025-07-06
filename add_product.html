@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Product</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-100 min-h-screen p-6">
+  <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+    <h2 class="text-2xl font-bold text-center mb-4">Add Product</h2>
+    <form id="addForm" class="space-y-3">
+      <input type="text" id="product_name" placeholder="Product Name" class="w-full border px-3 py-2 rounded" />
+      <input type="text" id="description" placeholder="Description" class="w-full border px-3 py-2 rounded" />
+      <input type="text" id="category" placeholder="Category" class="w-full border px-3 py-2 rounded" />
+      <input type="number" id="price" placeholder="Price" class="w-full border px-3 py-2 rounded" />
+      <input type="text" id="color" placeholder="Color" class="w-full border px-3 py-2 rounded" />
+      <input type="text" id="size" placeholder="Size" class="w-full border px-3 py-2 rounded" />
+      <input type="number" id="discount" placeholder="Discount (%)" class="w-full border px-3 py-2 rounded" />
+      <input type="number" id="available_stock" placeholder="Available Stock" class="w-full border px-3 py-2 rounded" />
+      <button type="submit" class="w-full py-2 font-semibold text-white rounded-lg bg-green-500">Add Product</button>
+    </form>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token || localStorage.getItem("role") !== "admin") window.location.href = "index.html";
+
+    document.getElementById("addForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const data = {
+        product_name: document.getElementById("product_name").value,
+        description: document.getElementById("description").value,
+        category: document.getElementById("category").value,
+        price: parseFloat(document.getElementById("price").value),
+        color: document.getElementById("color").value,
+        size: document.getElementById("size").value,
+        discount: parseFloat(document.getElementById("discount").value),
+        available_stock: parseInt(document.getElementById("available_stock").value),
+      };
+      const res = await fetch("http://localhost:8080/add_product", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        window.location.href = "products.html";
+      }
+    };
+  </script>
+</body>
+</html>

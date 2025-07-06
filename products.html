@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Products</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-tr from-green-300 to-blue-500 min-h-screen text-gray-900 p-6 pb-28">
+
+<div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+  <h2 id="heading" class="text-2xl font-bold"></h2>
+  <div id="top-actions" class="flex gap-4 items-center flex-wrap">
+    <input type="text" id="searchInput" placeholder="Search product name" class="px-3 py-1 rounded border text-sm" />
+    <button onclick="viewOrders()" id="ordersBtn" class="hidden text-sm px-4 py-1 bg-yellow-300 rounded-lg">Orders</button>
+    <button onclick="goToCart()" id="cartBtn" class="hidden text-sm px-4 py-1 bg-white rounded-lg">🛒 Cart</button>
+    <button onclick="goToAddProduct()" id="addBtn" class="hidden text-sm px-4 py-1 bg-green-500 text-white rounded-lg">➕ Add Product</button>
+    <button onclick="logout()" class="text-sm px-4 py-1 bg-red-500 text-white rounded-lg">Logout</button>
+  </div>
+</div>
+
+<div id="productList" class="grid gap-6 mb-20"></div>
+
+<!-- ✅ Always-visible Pagination Bar -->
+<div class="fixed bottom-0 left-0 right-0 bg-white shadow p-4 flex justify-between items-center z-10">
+  <div class="flex items-center gap-2">
+    <label for="itemsPerPage" class="text-sm font-medium">Items per page:</label>
+    <select id="itemsPerPage" class="text-sm border rounded px-2 py-1">
+      <option value="8">8</option>
+      <option value="12" selected>12</option>
+      <option value="24">24</option>
+    </select>
+  </div>
+  <div class="flex items-center gap-4">
+    <button onclick="prevPage()" id="prevBtn" class="px-4 py-1 bg-gray-200 rounded">⬅️ Prev</button>
+    <span id="pageIndicator" class="font-semibold text-sm"></span>
+    <button onclick="nextPage()" id="nextBtn" class="px-4 py-1 bg-gray-200 rounded">Next ➡️</button>
+  </div>
+</div>
+
+<div class="mt-6 text-center">
+  <button id="addAllCartBtn" onclick="addToCart()" class="hidden px-6 py-2 bg-blue-600 text-white rounded-lg">Add All to Cart</button>
+</div>
+
+<script>
+let token = localStorage.getItem("token");
+let role = localStorage.getItem("role");
+let selectedProducts = [];
+let currentPage = 1;
+let totalPages = 1;
+let itemsPerPage = 12;
+let currentSearch = "";
+
+if (!token) window.location.href = "index.html";
+
+document.getElementById("heading").textContent =
+  role === "admin" ? "Edit / Add Products" : "Select Products for Customer";
+document.getElementById("addBtn").style.display = role === "admin" ? "inline-block" : "none";
+document.getElementById("cartBtn").style.display = role === "customer" ? "inline-block" : "none";
+document.getElementById("ordersBtn").style.display = role === "customer" ? "inline-block" : "none";
+
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  currentPage = 1;
+  loadProducts();
+});
+
+document.getElementById("itemsPerPage").addEventListener("change", (e) => {
+  itemsPerPage = parseInt(e.target.value);
+  currentPage = 1;
+  loadProducts();
+});
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+function goToCart() {
+  window.location.href = "cart.html";
+}
+function viewOrders() {
+  window.location.href = "orders.html";
+}
+function goToAddProduct() {
+  window.location.href = "add_product.html";
+}
+function editProduct(id) {
+  localStorage.setItem("editId", id);
+  window.location.href = "edit_product.html";
+}
+
+async function addToCart() {
+  const user_id = localStorage.getItem("email");
+  const res = await fetch("http://localhost:8080/add_to_cart", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ user_id, products: selectedProducts })
+  });
+  const data = await res.json();
+  alert(data.message || data.error);
+}
+
+function toggleProduct(id, button) {
+  const index = selectedProducts.indexOf(id);
+  const isSelected = index !== -1;
+
+  if (isSelected) {
+    selectedProducts.splice(index, 1);
+    button.classList.remove("bg-red-500");
+    button.classList.add("bg-blue-500");
+    button.textContent = "Add";
+  } else {
+    selectedProducts.push(id);
+    button.classList.remove("bg-blue-500");
+    button.classList.add("bg-red-500");
+    button.textContent = "Remove";
+  }
+
+  updateAddAllButton();
+}
+
+function updateAddAllButton() {
+  const btn = document.getElementById("addAllCartBtn");
+  btn.classList.toggle("hidden", selectedProducts.length === 0);
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    loadProducts();
+  }
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    currentPage++;
+    loadProducts();
+  }
+}
+
+async function loadProducts() {
+  const res = await fetch(`http://localhost:8080/all_products?search=${encodeURIComponent(currentSearch)}&page=${currentPage}&limit=${itemsPerPage}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  const products = data.products;
+  totalPages = data.totalPages || 1;
+
+  const container = document.getElementById("productList");
+  const pageIndicator = document.getElementById("pageIndicator");
+
+  // Adjust grid layout based on itemsPerPage
+const gridClass =
+  itemsPerPage === 8 ? "grid-cols-2"
+  : itemsPerPage === 12 ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+  : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6";
+  container.className = `grid gap-6 mb-20 ${gridClass}`;
+
+  container.innerHTML = "";
+  if (products.length === 0) {
+    container.innerHTML = `<p class='text-white col-span-full text-center'>No products found.</p>`;
+  }
+
+  pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+
+  products.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "bg-white p-4 rounded-lg shadow relative";
+
+    let addBtnHTML = "";
+    if (role === "customer") {
+      const isSelected = selectedProducts.includes(p.id);
+      const btnClass = isSelected ? "bg-red-500" : "bg-blue-500";
+      const btnText = isSelected ? "Remove" : "Add";
+      addBtnHTML = `<button onclick="toggleProduct('${p.id}', this)" class="mt-2 text-sm ${btnClass} text-white px-2 py-1 rounded">${btnText}</button>`;
+    }
+
+    div.innerHTML = `
+      ${role === "admin" ? `<button onclick="editProduct('${p.id}')" class="absolute top-2 right-2">✏️</button>` : ""}
+      <h3 class="font-semibold text-lg">${p.product_name}</h3>
+      <p class="text-sm">${p.description || ""}</p>
+      <p class="text-sm text-gray-600">Price: ₹${p.price || 0}</p>
+      ${addBtnHTML}
+    `;
+    container.appendChild(div);
+  });
+
+  updateAddAllButton();
+}
+
+loadProducts();
+</script>
+
+</body>
+</html>
