@@ -33,7 +33,7 @@
 
     // Fetch product data and fill the form
     async function fetchProduct() {
-      const res = await fetch("http://localhost:8080/all_products", {
+      const res = await fetch("https://e-commerce-adaptnxt.onrender.com/all_products", {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -70,7 +70,7 @@
         discount: parseFloat(document.getElementById("discount").value),
         available_stock: parseInt(document.getElementById("available_stock").value),
       };
-      const res = await fetch("http://localhost:8080/edit_product", {
+      const res = await fetch("https://e-commerce-adaptnxt.onrender.com/edit_product", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

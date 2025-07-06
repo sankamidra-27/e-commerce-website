@@ -91,7 +91,7 @@ function editProduct(id) {
 
 async function addToCart() {
   const user_id = localStorage.getItem("email");
-  const res = await fetch("http://localhost:8080/add_to_cart", {
+  const res = await fetch("https://e-commerce-adaptnxt.onrender.com/add_to_cart", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -141,7 +141,7 @@ function nextPage() {
 }
 
 async function loadProducts() {
-  const res = await fetch(`http://localhost:8080/all_products?search=${encodeURIComponent(currentSearch)}&page=${currentPage}&limit=${itemsPerPage}`, {
+  const res = await fetch(`https://e-commerce-adaptnxt.onrender.com/all_products?search=${encodeURIComponent(currentSearch)}&page=${currentPage}&limit=${itemsPerPage}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   const data = await res.json();
