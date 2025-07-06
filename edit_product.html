@@ -23,25 +23,25 @@
     <p id="msg" class="text-center mt-3 text-sm"></p>
   </div>
 
-  <script>
-    const token = localStorage.getItem("token");
-    const productId = localStorage.getItem("editId");
+<script>
+  const token = localStorage.getItem("token");
+  const productId = localStorage.getItem("editId");
 
-    if (!token || !productId || localStorage.getItem("role") !== "admin") {
-      window.location.href = "index.html";
-    }
+  if (!token || !productId || localStorage.getItem("role") !== "admin") {
+    window.location.href = "index.html";
+  }
 
-    // Fetch product data and fill the form
-    async function fetchProduct() {
+  // ✅ Fetch and fill form
+  async function fetchProduct() {
+    try {
       const res = await fetch("https://e-commerce-adaptnxt.onrender.com/all_products", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      const allProducts = await res.json();
-      const product = allProducts.find(p => p.id === productId);
+      const data = await res.json();
+      const product = data.products.find(p => p.id === productId);
+
       if (!product) {
-        alert("Product not found");
+        alert("Product not found.");
         return;
       }
 
@@ -51,41 +51,50 @@
       document.getElementById("price").value = product.price || "";
       document.getElementById("color").value = product.color || "";
       document.getElementById("size").value = product.size || "";
-      document.getElementById("discount").value = product.discount || "";
-      document.getElementById("available_stock").value = product.available_stock || "";
+      document.getElementById("discount").value = product.discount ?? "";
+      document.getElementById("available_stock").value = product.available_stock ?? "";
+    } catch (err) {
+      console.error("Failed to fetch product:", err);
     }
+  }
 
-    fetchProduct();
+  fetchProduct();
 
-    document.getElementById("editForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const data = {
-        id: productId,
-        product_name: document.getElementById("product_name").value,
-        description: document.getElementById("description").value,
-        category: document.getElementById("category").value,
-        price: parseFloat(document.getElementById("price").value),
-        color: document.getElementById("color").value,
-        size: document.getElementById("size").value,
-        discount: parseFloat(document.getElementById("discount").value),
-        available_stock: parseInt(document.getElementById("available_stock").value),
-      };
-      const res = await fetch("https://e-commerce-adaptnxt.onrender.com/edit_product", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      document.getElementById("msg").textContent = result.message || "Product updated!";
-      if (res.ok) {
-        setTimeout(() => {
-          window.location.href = "products.html";
-        }, 1000);
-      }
+  // ✅ Form submit
+  document.getElementById("editForm").onsubmit = async (e) => {
+    e.preventDefault();
+
+    const data = {
+      id: productId,
+      product_name: document.getElementById("product_name").value,
+      description: document.getElementById("description").value,
+      category: document.getElementById("category").value,
+      price: parseFloat(document.getElementById("price").value),
+      color: document.getElementById("color").value,
+      size: document.getElementById("size").value,
+      discount: parseFloat(document.getElementById("discount").value) || null,
+      available_stock: parseInt(document.getElementById("available_stock").value) || null
     };
-  </script>
+
+    const res = await fetch("https://e-commerce-adaptnxt.onrender.com/edit_product", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    document.getElementById("msg").textContent = result.message || "Product updated!";
+
+    if (res.ok) {
+      setTimeout(() => {
+        window.location.href = "products.html";
+      }, 1000);
+    }
+  };
+</script>
+
 </body>
 </html>
