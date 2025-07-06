@@ -8,6 +8,7 @@
 </head>
 <body class="bg-gradient-to-tr from-green-300 to-blue-500 min-h-screen text-gray-900 p-6 pb-28">
 
+<!-- Top Bar -->
 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
   <h2 id="heading" class="text-2xl font-bold"></h2>
   <div id="top-actions" class="flex gap-4 items-center flex-wrap">
@@ -19,9 +20,10 @@
   </div>
 </div>
 
+<!-- Product Grid -->
 <div id="productList" class="grid gap-6 mb-20"></div>
 
-<!-- ✅ Always-visible Pagination Bar -->
+<!-- Pagination Bar -->
 <div class="fixed bottom-0 left-0 right-0 bg-white shadow p-4 flex justify-between items-center z-10">
   <div class="flex items-center gap-2">
     <label for="itemsPerPage" class="text-sm font-medium">Items per page:</label>
@@ -38,9 +40,13 @@
   </div>
 </div>
 
+<!-- Add All to Cart Button -->
 <div class="mt-6 text-center">
   <button id="addAllCartBtn" onclick="addToCart()" class="hidden px-6 py-2 bg-blue-600 text-white rounded-lg">Add All to Cart</button>
 </div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-24 right-6 z-50 hidden px-4 py-3 rounded shadow text-white text-sm"></div>
 
 <script>
 let token = localStorage.getItem("token");
@@ -54,7 +60,7 @@ let currentSearch = "";
 if (!token) window.location.href = "index.html";
 
 document.getElementById("heading").textContent =
-  role === "admin" ? "Edit / Add Products" : "Select Products for Customer";
+  role === "admin" ? "Edit / Add Products" : "Select Products";
 document.getElementById("addBtn").style.display = role === "admin" ? "inline-block" : "none";
 document.getElementById("cartBtn").style.display = role === "customer" ? "inline-block" : "none";
 document.getElementById("ordersBtn").style.display = role === "customer" ? "inline-block" : "none";
@@ -89,6 +95,19 @@ function editProduct(id) {
   window.location.href = "edit_product.html";
 }
 
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = `fixed bottom-24 right-6 z-50 px-4 py-3 rounded shadow text-white text-sm transition-opacity duration-300 ${
+    type === "error" ? "bg-red-600" : "bg-green-600"
+  }`;
+  toast.classList.remove("hidden");
+
+  setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3000);
+}
+
 async function addToCart() {
   const user_id = localStorage.getItem("email");
   const res = await fetch("https://e-commerce-adaptnxt.onrender.com/add_to_cart", {
@@ -99,7 +118,7 @@ async function addToCart() {
     body: JSON.stringify({ user_id, products: selectedProducts })
   });
   const data = await res.json();
-  alert(data.message || data.error);
+  showToast(data.message || data.error, data.error ? "error" : "success");
 }
 
 function toggleProduct(id, button) {
@@ -151,19 +170,19 @@ async function loadProducts() {
   const container = document.getElementById("productList");
   const pageIndicator = document.getElementById("pageIndicator");
 
-  // Adjust grid layout based on itemsPerPage
-const gridClass =
-  itemsPerPage === 8 ? "grid-cols-2"
-  : itemsPerPage === 12 ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-  : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6";
+  const gridClass =
+    itemsPerPage === 8 ? "grid-cols-2"
+    : itemsPerPage === 12 ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+    : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6";
   container.className = `grid gap-6 mb-20 ${gridClass}`;
-
   container.innerHTML = "";
-  if (products.length === 0) {
-    container.innerHTML = `<p class='text-white col-span-full text-center'>No products found.</p>`;
-  }
 
   pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+
+  if (products.length === 0) {
+    container.innerHTML = `<p class='text-white col-span-full text-center'>No products found.</p>`;
+    return;
+  }
 
   products.forEach(p => {
     const div = document.createElement("div");
