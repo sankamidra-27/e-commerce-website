@@ -19,6 +19,9 @@
     <button onclick="placeOrder()" class="px-6 py-2 bg-yellow-500 text-white rounded-lg">🧾 Proceed to Order</button>
   </div>
 
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden px-4 py-3 rounded shadow text-white"></div>
+
 <script>
 const token = localStorage.getItem("token");
 const user_id = localStorage.getItem("email");
@@ -27,6 +30,19 @@ let productIds = [];
 
 if (!token || !user_id) {
   window.location.href = "index.html";
+}
+
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = `fixed bottom-6 right-6 z-50 px-4 py-3 rounded shadow text-white transition-opacity duration-300 ${
+    type === "success" ? "bg-green-600" : "bg-red-600"
+  }`;
+  toast.classList.remove("hidden");
+
+  setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 3000);
 }
 
 function renderCart(cartProducts) {
@@ -71,7 +87,7 @@ function fetchAllProductsAndRender() {
   })
   .then(res => res.json())
   .then(allProducts => {
-    const cartProducts = allProducts.filter(p => productIds.includes(p.id));
+    const cartProducts = allProducts.products.filter(p => productIds.includes(p.id));
     renderCart(cartProducts);
   });
 }
@@ -83,23 +99,16 @@ fetch("https://e-commerce-adaptnxt.onrender.com/view_cart", {
   body: JSON.stringify({ user_id })
 })
 .then(res => res.json())
-.then(() => {
+.then(cartData => {
+  productIds = cartData.products || [];
+
   fetch("https://e-commerce-adaptnxt.onrender.com/all_products", {
     headers: { Authorization: `Bearer ${token}` }
   })
   .then(res => res.json())
   .then(allProducts => {
-    fetch("https://e-commerce-adaptnxt.onrender.com/view_cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id })
-    })
-    .then(res => res.json())
-    .then(cartData => {
-      productIds = cartData.products || [];
-      const cartProducts = allProducts.filter(p => productIds.includes(p.id));
-      renderCart(cartProducts);
-    });
+    const cartProducts = allProducts.products.filter(p => productIds.includes(p.id));
+    renderCart(cartProducts);
   });
 });
 
@@ -111,14 +120,14 @@ function updateCart() {
   })
   .then(res => res.json())
   .then(data => {
-    alert(data.message || data.error);
+    showToast(data.message || data.error, data.error ? "error" : "success");
     document.getElementById("updateCartBtn").classList.add("hidden");
   });
 }
 
 function placeOrder() {
   if (!productIds.length) {
-    alert("No items to order.");
+    showToast("No items to order.", "error");
     return;
   }
 
@@ -129,9 +138,11 @@ function placeOrder() {
   })
   .then(res => res.json())
   .then(data => {
-    alert(data.message || data.error);
+    showToast(data.message || data.error, data.error ? "error" : "success");
     if (data.message) {
-      window.location.href = "orders.html";
+      setTimeout(() => {
+        window.location.href = "orders.html";
+      }, 2000);
     }
   });
 }
